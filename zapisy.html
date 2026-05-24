@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zapisy na zajęcia - USOSweb</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header-container">
+        <div class="header-left">
+            <button class="burger-btn">
+                <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            
+            <div class="logo-container">
+                <div class="usos-logo">U</div>
+                <span class="usos-text">USOS<span>web</span></span>
+            </div>
+
+            <nav class="header-tabs">
+                <span class="active-tab">MÓJ USOSWEB</span>
+            </nav>
+        </div>
+
+        <div class="profile-container">
+            <div class="profile-info">
+                <div id="currentUserLabel" class="profile-name">Ładowanie...</div>
+                <div id="currentIndexLabel" class="profile-index">indeks: ------</div>
+            </div>
+            <div class="avatar-circle">
+                <img src="img/avatar.png" alt="Avatar" class="avatar-img" />
+            </div>
+        </div>
+    </header>
+
+    <div class="layout-wrapper">
+        <aside class="sidebar-nav">
+            <div>
+                <div class="student-selector-box">
+                    <label for="studentSelect" class="selector-label">
+                        Wybór studenta (Symulacja):
+                    </label>
+                    <select id="studentSelect" class="student-select">
+                        <!-- Opcje będą dynamicznie wypełniane z API -->
+                    </select>
+                </div>
+
+                <div class="menu-section">
+                    <div class="menu-section-label">Skróty</div>
+                    <nav class="menu-list">
+                        <a href="index.html" class="menu-link">
+                            <img src="img/callendar.png" alt="Plan" class="menu-icon" />
+                            <span>PLAN ZAJĘĆ</span>
+                        </a>
+                        <a href="zapisy.html" class="menu-link-active">
+                            <img src="img/sign.png" alt="Rejestracja" class="menu-icon" />
+                            <span>REJESTRACJA NA ZAJĘCIA</span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <button id="resetDbBtn" class="reset-db-btn">
+                    <img src="img/reset.png" alt="Reset" class="reset-icon" />
+                    <span>Zresetuj bazę danych</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="content-main">
+            <section class="content-section">
+                <div class="title-container-align">
+                    <h1 class="main-title">Zapisy na zajęcia</h1>
+                    <span id="classesCountBadge" class="classes-count-badge">... zajęć</span>
+                </div>
+
+                <div id="alert-message">
+                    <span id="alertMessageText">Alert text placeholder</span>
+                    <button onclick="document.getElementById('alert-message').classList.remove('show-alert')" class="alert-close-btn">✕</button>
+                </div>
+
+                <div class="registration-container">
+                    <div class="table-responsive">
+                        <table class="registration-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-id-header">ID</th>
+                                    <th>Nazwa Przedmiotu</th>
+                                    <th>Prowadzący</th>
+                                    <th>Termin / Sala</th>
+                                    <th class="table-seats-header">Miejsca</th>
+                                    <th class="table-action-header">Rejestracja</th>
+                                </tr>
+                            </thead>
+                            <tbody id="classesTableBody">
+                                <!-- zajęcia uzupełniane dynamicznie z API -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- TOAST POPUP -->
+    <div id="toast">
+        <span id="toastIcon" class="toast-icon"></span>
+        <span id="toastText">Toast message placeholder</span>
+    </div>
+
+    <!-- Link to external JS -->
+    <script src="zapisy.js"></script>
+</body>
+</html>
