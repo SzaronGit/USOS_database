@@ -1,77 +1,143 @@
 const API_URL = 'http://127.0.0.1:8000/api';
 
+// Safe localStorage wrapper to prevent crashes when cookies/storage is blocked in local/file views
+const safeStorage = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            return this[key] || null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            this[key] = value;
+        }
+    }
+};
+
 let studentsList = [];
+let teachersList = [];
 let classesList = [];
 let enrolledClassIds = new Set();
-let selectedStudentId = null;
+let selectedRole = safeStorage.getItem('selectedRole') || 'student';
+let selectedStudentId = safeStorage.getItem('selectedStudentId');
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadStudents();
-    
-    // Handle student dropdown selector
-    document.getElementById('studentSelect').addEventListener('change', async (e) => {
-        selectedStudentId = parseInt(e.target.value);
-        localStorage.setItem('selectedStudentId', selectedStudentId);
-        updateUserHeader();
-        await refreshRegistrations();
-    });
+    if (selectedRole === 'teacher') {
+        window.location.href = 'zarzadzanie.html';
+        return;
+    }
 
-    // Database reset logic
-    document.getElementById('resetDbBtn').addEventListener('click', async () => {
-        if (confirm('Czy na pewno chcesz zresetować bazę danych do stanu domyślnego? Wszystkie własne zapisy zostaną usunięte.')) {
-            try {
-                const response = await fetch(`${API_URL}/reset-db`, { method: 'POST' });
-                const data = await response.json();
-                if (response.ok) {
-                    showToast('Baza danych została zresetowana!', 'success');
-                    await loadStudents();
-                } else {
-                    showToast(data.detail || 'Błąd resetowania bazy danych.', 'error');
+    await initSidebar();
+
+    const resetBtn = document.getElementById('resetDbBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async () => {
+            if (confirm('Czy na pewno chcesz zresetować bazę danych do stanu domyślnego? Wszystkie własne zapisy zostaną usunięte.')) {
+                try {
+                    const response = await fetch(`${API_URL}/reset-db`, { method: 'POST' });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast('Baza danych została zresetowana!', 'success');
+                        await initSidebar();
+                    } else {
+                        showToast(data.detail || 'Błąd resetowania bazy danych.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Brak połączenia z serwerem.', 'error');
                 }
-            } catch (err) {
-                showToast('Brak połączenia z serwerem.', 'error');
             }
-        }
-    });
+        });
+    }
 });
 
-// Load list of students
-async function loadStudents() {
-    const select = document.getElementById('studentSelect');
-    try {
-        const response = await fetch(`${API_URL}/students`);
-        if (response.ok) {
-            studentsList = await response.json();
-            
-            select.innerHTML = '';
-            studentsList.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.innerText = `${s.first_name} ${s.last_name} (${s.index_number})`;
-                select.appendChild(opt);
-            });
+async function initSidebar() {
+    const roleSelect = document.getElementById('roleSelect');
+    const userSelect = document.getElementById('userSelect');
+    const userSelectLabel = document.getElementById('userSelectLabel');
+    const actionLink = document.getElementById('actionLink');
 
-            // Recover saved student selector state
-            const savedId = localStorage.getItem('selectedStudentId');
-            if (savedId && studentsList.some(s => s.id == savedId)) {
-                select.value = savedId;
-                selectedStudentId = parseInt(savedId);
-            } else if (studentsList.length > 0) {
-                select.value = studentsList[0].id;
-                selectedStudentId = studentsList[0].id;
-            }
-            
-            updateUserHeader();
-            await refreshRegistrations();
+    if (roleSelect) {
+        roleSelect.value = selectedRole;
+    }
+
+    if (actionLink) {
+        if (selectedRole === 'teacher') {
+            actionLink.href = 'zarzadzanie.html';
+            const linkText = actionLink.querySelector('span');
+            if (linkText) linkText.innerText = 'PANEL PROWADZĄCEGO';
+            const linkImg = actionLink.querySelector('img');
+            if (linkImg) linkImg.src = 'img/info.png';
+        } else {
+            actionLink.href = 'zapisy.html';
+            const linkText = actionLink.querySelector('span');
+            if (linkText) linkText.innerText = 'REJESTRACJA NA ZAJĘCIA';
+            const linkImg = actionLink.querySelector('img');
+            if (linkImg) linkImg.src = 'img/sign.png';
         }
+    }
+
+    try {
+        if (selectedRole === 'student') {
+            if (userSelectLabel) userSelectLabel.innerText = 'Wybór studenta (Symulacja):';
+            const response = await fetch(`${API_URL}/students`);
+            if (response.ok) {
+                studentsList = await response.json();
+                if (userSelect) {
+                    userSelect.innerHTML = '';
+                    studentsList.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = `${s.first_name} ${s.last_name} (${s.index_number})`;
+                        userSelect.appendChild(opt);
+                    });
+
+                    if (selectedStudentId && studentsList.some(s => s.id == selectedStudentId)) {
+                        selectedStudentId = parseInt(selectedStudentId);
+                        userSelect.value = selectedStudentId;
+                    } else if (studentsList.length > 0) {
+                        selectedStudentId = studentsList[0].id;
+                        safeStorage.setItem('selectedStudentId', selectedStudentId);
+                        userSelect.value = selectedStudentId;
+                    }
+                }
+            }
+        }
+
+        updateUserHeader();
+        await refreshRegistrations();
     } catch (err) {
         console.error(err);
         showToast('Brak połączenia z backendem FastAPI.', 'error');
-        document.getElementById('currentUserLabel').innerText = 'Błąd połączenia';
+        const headerLabel = document.getElementById('currentUserLabel');
+        if (headerLabel) headerLabel.innerText = 'Błąd połączenia';
+    }
+
+    if (roleSelect) {
+        roleSelect.onchange = (e) => {
+            const val = e.target.value;
+            safeStorage.setItem('selectedRole', val);
+            if (val === 'teacher') {
+                window.location.href = 'zarzadzanie.html';
+            } else {
+                window.location.reload();
+            }
+        };
+    }
+
+    if (userSelect) {
+        userSelect.onchange = async (e) => {
+            selectedStudentId = parseInt(e.target.value);
+            safeStorage.setItem('selectedStudentId', selectedStudentId);
+            updateUserHeader();
+            await refreshRegistrations();
+        };
     }
 }
 
-// Update header user names
 function updateUserHeader() {
     const student = studentsList.find(s => s.id === selectedStudentId);
     if (student) {

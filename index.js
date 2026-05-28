@@ -1,186 +1,224 @@
 const API_URL = 'http://127.0.0.1:8000/api';
 
+// Safe localStorage wrapper to prevent crashes when cookies/storage is blocked in local/file views
+const safeStorage = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            return this[key] || null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            this[key] = value;
+        }
+    }
+};
+
 let studentsList = [];
-let selectedStudentId = null;
+let teachersList = [];
+let selectedRole = safeStorage.getItem('selectedRole') || 'student';
+let selectedStudentId = safeStorage.getItem('selectedStudentId');
+let selectedTeacherId = safeStorage.getItem('selectedTeacherId');
 let currentMonday = new Date('2026-05-25');
 
 document.addEventListener('DOMContentLoaded', async () => {
     generateGridLines();
-    await loadStudents();
+    await initSidebar();
     
-    // Handle student selector changes
-    document.getElementById('studentSelect').addEventListener('change', async (e) => {
-        selectedStudentId = parseInt(e.target.value);
-        localStorage.setItem('selectedStudentId', selectedStudentId);
-        updateUserHeader();
-        await refreshSchedule();
-    });
-
     // Date navigation controls
-    document.getElementById('prevWeekBtn').addEventListener('click', async () => {
-        currentMonday.setDate(currentMonday.getDate() - 7);
-        updateDateDisplay();
-        await refreshSchedule();
-    });
+    const prevBtn = document.getElementById('prevWeekBtn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', async () => {
+            currentMonday.setDate(currentMonday.getDate() - 7);
+            updateDateDisplay();
+            await refreshSchedule();
+        });
+    }
 
-    document.getElementById('nextWeekBtn').addEventListener('click', async () => {
-        currentMonday.setDate(currentMonday.getDate() + 7);
-        updateDateDisplay();
-        await refreshSchedule();
-    });
+    const nextBtn = document.getElementById('nextWeekBtn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', async () => {
+            currentMonday.setDate(currentMonday.getDate() + 7);
+            updateDateDisplay();
+            await refreshSchedule();
+        });
+    }
 
     // Database reset logic
-    document.getElementById('resetDbBtn').addEventListener('click', async () => {
-        if (confirm('Czy na pewno chcesz zresetować bazę danych do stanu domyślnego? Wszystkie własne zapisy zostaną usunięte.')) {
-            try {
-                const response = await fetch(`${API_URL}/reset-db`, { method: 'POST' });
-                const data = await response.json();
-                if (response.ok) {
-                    showToast('Baza danych została zresetowana!', 'success');
-                    await loadStudents();
-                } else {
-                    showToast(data.detail || 'Błąd resetowania bazy danych.', 'error');
+    const resetBtn = document.getElementById('resetDbBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async () => {
+            if (confirm('Czy na pewno chcesz zresetować bazę danych do stanu domyślnego? Wszystkie własne zapisy zostaną usunięte.')) {
+                try {
+                    const response = await fetch(`${API_URL}/reset-db`, { method: 'POST' });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast('Baza danych została zresetowana!', 'success');
+                        await initSidebar();
+                    } else {
+                        showToast(data.detail || 'Błąd resetowania bazy danych.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Brak połączenia z serwerem.', 'error');
                 }
-            } catch (err) {
-                showToast('Brak połączenia z serwerem.', 'error');
             }
-        }
-    });
+        });
+    }
 
     updateDateDisplay();
 });
 
-// Date helper format
-function formatDate(d) {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+// Setup sidebar selectors and navigation menu
+async function initSidebar() {
+    const roleSelect = document.getElementById('roleSelect');
+    const userSelect = document.getElementById('userSelect');
+    const userSelectLabel = document.getElementById('userSelectLabel');
+    const actionLink = document.getElementById('actionLink');
 
-// Get ISO standard week number
-function getISOWeekNumber(d) {
-    const date = new Date(d.valueOf());
-    const dayNum = (d.getDay() + 6) % 7;
-    date.setDate(date.getDate() - dayNum + 3);
-    const firstThursday = date.valueOf();
-    date.setMonth(0, 1);
-    if (date.getDay() !== 4) {
-        date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7));
-    }
-    return 1 + Math.ceil((firstThursday - date) / 604800000);
-}
-
-// Update displayed date and week parity badges
-function updateDateDisplay() {
-    const sunday = new Date(currentMonday);
-    sunday.setDate(currentMonday.getDate() + 6);
-    
-    document.getElementById('dateRangeText').innerText = `${formatDate(currentMonday)} - ${formatDate(sunday)}`;
-    
-    const weekNum = getISOWeekNumber(currentMonday);
-    const isEven = (weekNum % 2 === 0);
-    const parityText = isEven ? 'TP' : 'TN';
-    const badge = document.getElementById('weekParityText');
-    
-    badge.innerText = parityText;
-    if (isEven) {
-        badge.style.backgroundColor = '#2b4c7e';
-        badge.title = "Tydzień Parzysty (TP)";
-    } else {
-        badge.style.backgroundColor = '#f05a28';
-        badge.title = "Tydzień Nieparzysty (TN)";
-    }
-}
-
-// Generate lines and hourly ticks in timetable grid
-function generateGridLines() {
-    const gridContainer = document.getElementById('timetableGrid');
-    const hours = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
-    
-    // Clean up existing elements
-    const oldLines = gridContainer.querySelectorAll('.grid-vertical-line, .grid-horizontal-line, .hour-label');
-    oldLines.forEach(l => l.remove());
-
-    // 5 vertical grids for Pon-Pią
-    for (let day = 1; day <= 5; day++) {
-        const line = document.createElement('div');
-        line.style.gridColumn = day + 1;
-        line.style.gridRow = '2 / 38';
-        line.className = 'grid-vertical-line';
-        gridContainer.appendChild(line);
+    if (roleSelect) {
+        roleSelect.value = selectedRole;
     }
 
-    // Horizontal grid lines and hours
-    hours.forEach((h, idx) => {
-        const rowStart = 2 + idx * 4;
-        
-        const label = document.createElement('div');
-        label.style.gridColumn = '1';
-        label.style.gridRow = `${rowStart} / span 4`;
-        label.className = 'hour-label';
-        label.innerText = h;
-        gridContainer.appendChild(label);
-        
-        const line = document.createElement('div');
-        line.style.gridColumn = '2 / 7';
-        line.style.gridRow = `${rowStart}`;
-        line.className = 'grid-horizontal-line';
-        gridContainer.appendChild(line);
-    });
-}
-
-// Fetch students from API
-async function loadStudents() {
-    const select = document.getElementById('studentSelect');
-    try {
-        const response = await fetch(`${API_URL}/students`);
-        if (response.ok) {
-            studentsList = await response.json();
-            
-            select.innerHTML = '';
-            studentsList.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.innerText = `${s.first_name} ${s.last_name} (${s.index_number})`;
-                select.appendChild(opt);
-            });
-
-            // Recover student selection state
-            const savedId = localStorage.getItem('selectedStudentId');
-            if (savedId && studentsList.some(s => s.id == savedId)) {
-                select.value = savedId;
-                selectedStudentId = parseInt(savedId);
-            } else if (studentsList.length > 0) {
-                select.value = studentsList[0].id;
-                selectedStudentId = studentsList[0].id;
-            }
-            
-            updateUserHeader();
-            await refreshSchedule();
+    // Adjust shortcut action link based on role
+    if (actionLink) {
+        if (selectedRole === 'teacher') {
+            actionLink.href = 'zarzadzanie.html';
+            const linkText = actionLink.querySelector('span');
+            if (linkText) linkText.innerText = 'PANEL PROWADZĄCEGO';
+            const linkImg = actionLink.querySelector('img');
+            if (linkImg) linkImg.src = 'img/info.png';
+        } else {
+            actionLink.href = 'zapisy.html';
+            const linkText = actionLink.querySelector('span');
+            if (linkText) linkText.innerText = 'REJESTRACJA NA ZAJĘCIA';
+            const linkImg = actionLink.querySelector('img');
+            if (linkImg) linkImg.src = 'img/sign.png';
         }
+    }
+
+    try {
+        if (selectedRole === 'student') {
+            if (userSelectLabel) userSelectLabel.innerText = 'Wybór studenta (Symulacja):';
+            const response = await fetch(`${API_URL}/students`);
+            if (response.ok) {
+                studentsList = await response.json();
+                if (userSelect) {
+                    userSelect.innerHTML = '';
+                    studentsList.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = `${s.first_name} ${s.last_name} (${s.index_number})`;
+                        userSelect.appendChild(opt);
+                    });
+
+                    if (selectedStudentId && studentsList.some(s => s.id == selectedStudentId)) {
+                        selectedStudentId = parseInt(selectedStudentId);
+                        userSelect.value = selectedStudentId;
+                    } else if (studentsList.length > 0) {
+                        selectedStudentId = studentsList[0].id;
+                        safeStorage.setItem('selectedStudentId', selectedStudentId);
+                        userSelect.value = selectedStudentId;
+                    }
+                }
+            }
+        } else {
+            if (userSelectLabel) userSelectLabel.innerText = 'Wybór prowadzącego (Symulacja):';
+            const response = await fetch(`${API_URL}/teachers`);
+            if (response.ok) {
+                teachersList = await response.json();
+                if (userSelect) {
+                    userSelect.innerHTML = '';
+                    teachersList.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.innerText = `${t.academic_title || ''} ${t.first_name} ${t.last_name}`.trim();
+                        userSelect.appendChild(opt);
+                    });
+
+                    if (selectedTeacherId && teachersList.some(t => t.id == selectedTeacherId)) {
+                        selectedTeacherId = parseInt(selectedTeacherId);
+                        userSelect.value = selectedTeacherId;
+                    } else if (teachersList.length > 0) {
+                        selectedTeacherId = teachersList[0].id;
+                        safeStorage.setItem('selectedTeacherId', selectedTeacherId);
+                        userSelect.value = selectedTeacherId;
+                    }
+                }
+            }
+        }
+
+        updateUserHeader();
+        await refreshSchedule();
     } catch (err) {
         console.error(err);
         showToast('Brak połączenia z backendem FastAPI.', 'error');
-        document.getElementById('currentUserLabel').innerText = 'Błąd połączenia';
+        const headerLabel = document.getElementById('currentUserLabel');
+        if (headerLabel) headerLabel.innerText = 'Błąd połączenia';
+    }
+
+    // Handlers
+    if (roleSelect) {
+        roleSelect.onchange = (e) => {
+            selectedRole = e.target.value;
+            safeStorage.setItem('selectedRole', selectedRole);
+            window.location.reload();
+        };
+    }
+
+    if (userSelect) {
+        userSelect.onchange = async (e) => {
+            const val = parseInt(e.target.value);
+            if (selectedRole === 'student') {
+                selectedStudentId = val;
+                safeStorage.setItem('selectedStudentId', selectedStudentId);
+            } else {
+                selectedTeacherId = val;
+                safeStorage.setItem('selectedTeacherId', selectedTeacherId);
+            }
+            updateUserHeader();
+            await refreshSchedule();
+        };
     }
 }
 
 // Update header visual text
 function updateUserHeader() {
-    const student = studentsList.find(s => s.id === selectedStudentId);
-    if (student) {
-        document.getElementById('currentUserLabel').innerText = `${student.first_name} ${student.last_name}`;
-        document.getElementById('currentIndexLabel').innerText = `index: ${student.index_number}`;
+    const curUserLabel = document.getElementById('currentUserLabel');
+    const curIndexLabel = document.getElementById('currentIndexLabel');
+    
+    if (!curUserLabel || !curIndexLabel) return;
+
+    if (selectedRole === 'student') {
+        const student = studentsList.find(s => s.id === selectedStudentId);
+        if (student) {
+            curUserLabel.innerText = `${student.first_name} ${student.last_name}`;
+            curIndexLabel.innerText = `index: ${student.index_number}`;
+        }
+    } else {
+        const teacher = teachersList.find(t => t.id === selectedTeacherId);
+        if (teacher) {
+            const name = `${teacher.academic_title || ''} ${teacher.first_name} ${teacher.last_name}`.trim();
+            curUserLabel.innerText = name;
+            curIndexLabel.innerText = 'rola: prowadzący';
+        }
     }
 }
 
 // Fetch and refresh weekly timetable
 async function refreshSchedule() {
-    if (!selectedStudentId) return;
+    const activeId = selectedRole === 'student' ? selectedStudentId : selectedTeacherId;
+    if (!activeId) return;
+
+    const endpoint = selectedRole === 'student'
+        ? `${API_URL}/students/${selectedStudentId}/schedule`
+        : `${API_URL}/teachers/${selectedTeacherId}/schedule`;
 
     try {
-        const res = await fetch(`${API_URL}/students/${selectedStudentId}/schedule`);
+        const res = await fetch(endpoint);
         if (res.ok) {
             const schedule = await res.json();
             renderScheduleGrid(schedule);
@@ -235,7 +273,7 @@ function renderScheduleGrid(schedule) {
         // Display info details
         card.addEventListener('click', () => {
             const weekText = c.week_parity === 1 ? 'TP (Tydzień parzysty)' : (c.week_parity === 2 ? 'TN (Tydzień nieparzysty)' : 'Co tydzień');
-            showToast(`Zajęcia: ${c.name}\nProwadzący: ${c.teacher_name}\nSala: ${c.room}\nGodzina: ${c.start_time}-${c.end_time} (${weekText})`, 'info');
+            showToast(`Zajęcia: ${c.name}\nProwadzący: ${c.teacher_name}\nSala: ${c.room}\nGodzina: ${c.start_time}-${c.end_time} (${weekText})\nMiejsca: ${c.taken_seats}/${c.max_seats}`, 'info');
         });
 
         gridContainer.appendChild(card);
@@ -279,4 +317,85 @@ function showToast(msg, type = 'info') {
     toastTimeout = setTimeout(() => {
         toast.classList.remove('show-toast');
     }, 3500);
+}
+
+// Date helper format
+function formatDate(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Get ISO standard week number
+function getISOWeekNumber(d) {
+    const date = new Date(d.valueOf());
+    const dayNum = (d.getDay() + 6) % 7;
+    date.setDate(date.getDate() - dayNum + 3);
+    const firstThursday = date.valueOf();
+    date.setMonth(0, 1);
+    if (date.getDay() !== 4) {
+        date.setMonth(0, 1 + ((4 - date.getDay() + 7) % 7));
+    }
+    return 1 + Math.ceil((firstThursday - date) / 604800000);
+}
+
+// Update displayed date and week parity badges
+function updateDateDisplay() {
+    const sunday = new Date(currentMonday);
+    sunday.setDate(currentMonday.getDate() + 6);
+    
+    document.getElementById('dateRangeText').innerText = `${formatDate(currentMonday)} - ${formatDate(sunday)}`;
+    
+    const weekNum = getISOWeekNumber(currentMonday);
+    const isEven = (weekNum % 2 === 0);
+    const parityText = isEven ? 'TP' : 'TN';
+    const badge = document.getElementById('weekParityText');
+    
+    badge.innerText = parityText;
+    if (isEven) {
+        badge.style.backgroundColor = '#2b4c7e';
+        badge.title = "Tydzień Parzysty (TP)";
+    } else {
+        badge.style.backgroundColor = '#f05a28';
+        badge.title = "Tydzień Nieparzysty (TN)";
+    }
+}
+
+// Generate lines and hourly ticks in timetable grid
+function generateGridLines() {
+    const gridContainer = document.getElementById('timetableGrid');
+    if (!gridContainer) return;
+    const hours = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+    
+    // Clean up existing elements
+    const oldLines = gridContainer.querySelectorAll('.grid-vertical-line, .grid-horizontal-line, .hour-label');
+    oldLines.forEach(l => l.remove());
+
+    // 5 vertical grids for Pon-Pią
+    for (let day = 1; day <= 5; day++) {
+        const line = document.createElement('div');
+        line.style.gridColumn = day + 1;
+        line.style.gridRow = '2 / 38';
+        line.className = 'grid-vertical-line';
+        gridContainer.appendChild(line);
+    }
+
+    // Horizontal grid lines and hours
+    hours.forEach((h, idx) => {
+        const rowStart = 2 + idx * 4;
+        
+        const label = document.createElement('div');
+        label.style.gridColumn = '1';
+        label.style.gridRow = `${rowStart} / span 4`;
+        label.className = 'hour-label';
+        label.innerText = h;
+        gridContainer.appendChild(label);
+        
+        const line = document.createElement('div');
+        line.style.gridColumn = '2 / 7';
+        line.style.gridRow = `${rowStart}`;
+        line.className = 'grid-horizontal-line';
+        gridContainer.appendChild(line);
+    });
 }

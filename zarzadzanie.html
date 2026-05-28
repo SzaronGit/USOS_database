@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zarządzanie zajęciami - USOSweb</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header-container">
+        <div class="header-left">
+            <button class="burger-btn">
+                <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            
+            <div class="logo-container">
+                <div class="usos-logo">U</div>
+                <span class="usos-text">USOS<span>web</span></span>
+            </div>
+
+            <nav class="header-tabs">
+                <span class="active-tab">MÓJ USOSWEB</span>
+            </nav>
+        </div>
+
+        <div class="profile-container">
+            <div class="profile-info">
+                <div id="currentUserLabel" class="profile-name">Ładowanie...</div>
+                <div id="currentIndexLabel" class="profile-index">rola: ------</div>
+            </div>
+            <div class="avatar-circle">
+                <img src="img/avatar.png" alt="Avatar" class="avatar-img" />
+            </div>
+        </div>
+    </header>
+
+    <div class="layout-wrapper">
+        <aside class="sidebar-nav">
+            <div>
+                <div class="student-selector-box">
+                    <label for="roleSelect" class="selector-label">Rola (Symulacja):</label>
+                    <select id="roleSelect" class="student-select" style="margin-bottom: 12px;">
+                        <option value="student">Student</option>
+                        <option value="teacher">Prowadzący</option>
+                    </select>
+                    
+                    <label for="userSelect" id="userSelectLabel" class="selector-label">Prowadzący:</label>
+                    <select id="userSelect" class="student-select">
+                        <!-- Opcje będą dynamicznie wypełniane z API -->
+                    </select>
+                </div>
+
+                <div class="menu-section">
+                    <div class="menu-section-label">Skróty</div>
+                    <nav class="menu-list" id="sidebarMenu">
+                        <a href="index.html" class="menu-link" id="planLink">
+                            <img src="img/callendar.png" alt="Plan" class="menu-icon" />
+                            <span>PLAN ZAJĘĆ</span>
+                        </a>
+                        <a href="zarzadzanie.html" class="menu-link-active" id="actionLink">
+                            <img src="img/info.png" alt="Zarządzanie" class="menu-icon" />
+                            <span>PANEL PROWADZĄCEGO</span>
+                        </a>
+                        <a href="zajecia.html" class="menu-link" id="catalogLink">
+                            <img src="img/info.png" alt="Spis" class="menu-icon" />
+                            <span>SPIS ZAJĘĆ</span>
+                        </a>
+                        <a href="historia.html" class="menu-link" id="historyLink">
+                            <img src="img/reset.png" alt="Historia" class="menu-icon" style="filter: hue-rotate(90deg);" />
+                            <span>HISTORIA</span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <button id="resetDbBtn" class="reset-db-btn">
+                    <img src="img/reset.png" alt="Reset" class="reset-icon" />
+                    <span>Zresetuj bazę danych</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="content-main">
+            <section class="content-section">
+                <div class="title-container-align">
+                    <h1 class="main-title">Zarządzanie zajęciami</h1>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span id="classesCountBadge" class="classes-count-badge">... zajęć</span>
+                        <button id="addClassBtn" class="add-class-btn">
+                            <span>+ Dodaj zajęcia</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="alert-message">
+                    <span id="alertMessageText">Alert text placeholder</span>
+                    <button onclick="document.getElementById('alert-message').classList.remove('show-alert')" class="alert-close-btn">✕</button>
+                </div>
+
+                <div class="registration-container">
+                    <div class="table-responsive">
+                        <table class="registration-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-id-header">ID</th>
+                                    <th>Nazwa Zajęć</th>
+                                    <th>Termin</th>
+                                    <th>Sala</th>
+                                    <th>Miejsca (Zapisani / Maks)</th>
+                                    <th>Parzystość</th>
+                                    <th class="table-action-header">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="classesTableBody">
+                                <!-- zajęcia uzupełniane dynamicznie z API -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL DO DODAWANIA/EDYCJI ZAJĘĆ -->
+    <div id="classModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 id="modalTitle">Dodaj nowe zajęcia</h2>
+                <button id="closeModalBtn" class="modal-close-x">✕</button>
+            </div>
+            <form id="classForm" class="modal-form">
+                <div id="modal-alert-message" class="modal-alert-box">
+                    <span id="modalAlertMessageText">Alert text placeholder</span>
+                    <button type="button" onclick="document.getElementById('modal-alert-message').classList.remove('show-alert')" class="alert-close-btn">✕</button>
+                </div>
+                <input type="hidden" id="classIdInput" value="">
+                
+                <div class="form-group">
+                    <label for="classNameInput">Nazwa przedmiotu / zajęć</label>
+                    <input type="text" id="classNameInput" required placeholder="np. Algorytmy i struktury danych">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group half-width">
+                        <label for="classRoomInput">Sala</label>
+                        <input type="text" id="classRoomInput" required placeholder="np. 3.12">
+                    </div>
+                    <div class="form-group half-width">
+                        <label for="classMaxSeatsInput">Liczba miejsc</label>
+                        <input type="number" id="classMaxSeatsInput" required min="1" value="30">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group third-width">
+                        <label for="classDayInput">Dzień tygodnia</label>
+                        <select id="classDayInput" class="student-select">
+                            <option value="1">Poniedziałek</option>
+                            <option value="2">Wtorek</option>
+                            <option value="3">Środa</option>
+                            <option value="4">Czwartek</option>
+                            <option value="5">Piątek</option>
+                        </select>
+                    </div>
+                    <div class="form-group third-width">
+                        <label for="classStartTimeInput">Godzina startu</label>
+                        <input type="text" id="classStartTimeInput" required placeholder="08:00" pattern="^[0-2][0-9]:[0-5][0-9]$" title="Format HH:MM">
+                    </div>
+                    <div class="form-group third-width">
+                        <label for="classEndTimeInput">Godzina końca</label>
+                        <input type="text" id="classEndTimeInput" required placeholder="09:30" pattern="^[0-2][0-9]:[0-5][0-9]$" title="Format HH:MM">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="classParityInput">Parzystość tygodnia</label>
+                    <select id="classParityInput" class="student-select">
+                        <option value="0">Co tydzień (TP i TN)</option>
+                        <option value="1">Tydzień parzysty (TP)</option>
+                        <option value="2">Tydzień nieparzysty (TN)</option>
+                    </select>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" id="cancelModalBtn" class="btn-cancel">Anuluj</button>
+                    <button type="submit" id="saveClassBtn" class="btn-save">Zapisz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST POPUP -->
+    <div id="toast">
+        <span id="toastIcon" class="toast-icon"></span>
+        <span id="toastText">Toast message placeholder</span>
+    </div>
+
+    <script src="zarzadzanie.js"></script>
+</body>
+</html>
