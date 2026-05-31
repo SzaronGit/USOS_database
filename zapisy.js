@@ -273,6 +273,7 @@ async function enrollStudent(classId) {
         } else {
             showToast(data.detail || 'Błąd zapisu.', 'error');
             showAlert(data.detail || 'Wystąpił błąd podczas zapisu.', 'danger');
+            await refreshRegistrations();
         }
     } catch (err) {
         console.error(err);
@@ -305,6 +306,7 @@ async function unenrollStudent(classId) {
         } else {
             showToast(data.detail || 'Błąd wypisu.', 'error');
             showAlert(data.detail || 'Wystąpił błąd podczas wypisywania.', 'danger');
+            await refreshRegistrations();
         }
     } catch (err) {
         console.error(err);

@@ -67,8 +67,7 @@ def init_db(db: Session):
     db.execute(text("SELECT setval(pg_get_serial_sequence('teachers', 'id'), coalesce(max(id), 1)) FROM teachers;"))
     db.execute(text("SELECT setval(pg_get_serial_sequence('students', 'id'), coalesce(max(id), 1)) FROM students;"))
     db.execute(text("SELECT setval(pg_get_serial_sequence('classes', 'id'), coalesce(max(id), 1)) FROM classes;"))
-    
-    # Dodanie logów startowych
+
     logs = [
         models.ActivityLog(user_role="system", user_name="System", action="RESET_DB", details="Zresetowano bazę danych do stanu domyślnego"),
         models.ActivityLog(user_role="student", user_name="Jeremy Sochan", action="ENROLL", details="Zapisano studenta Jeremy Sochan (400101) na przedmiot 'Teoria automatów i języków formalnych'"),
