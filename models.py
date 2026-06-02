@@ -34,9 +34,24 @@ class Class(Base):
     week_parity = Column(Integer, default=0)        # 0 = co tydzień, 1 = TP (parzyste), 2 = TN (nieparzyste)
 
 
+import datetime
+
+def get_polish_time():
+    return datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+
 class Enrollment(Base):
     __tablename__ = "enrollments"
 
     student_id = Column(Integer, ForeignKey("students.id"), primary_key=True)
     class_id = Column(Integer, ForeignKey("classes.id"), primary_key=True)
-    enrollment_date = Column(DateTime, default=func.now())
+    enrollment_date = Column(DateTime, default=get_polish_time)
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=get_polish_time)
+    user_role = Column(String(20), nullable=False) # 'student', 'teacher', 'system'
+    user_name = Column(String(100), nullable=False)
+    action = Column(String(50), nullable=False) # 'ENROLL', 'UNENROLL', 'CREATE_CLASS', 'EDIT_CLASS', 'DELETE_CLASS', 'RESET_DB'
+    details = Column(String(500), nullable=False)

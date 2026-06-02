@@ -42,24 +42,36 @@
         <aside class="sidebar-nav">
             <div>
                 <div class="student-selector-box">
-                    <label for="studentSelect" class="selector-label">
-                        Wybór studenta (Symulacja):
-                    </label>
-                    <select id="studentSelect" class="student-select">
+                    <label for="roleSelect" class="selector-label">Rola (Symulacja):</label>
+                    <select id="roleSelect" class="student-select" style="margin-bottom: 12px;">
+                        <option value="student">Student</option>
+                        <option value="teacher">Prowadzący</option>
+                    </select>
+                    
+                    <label for="userSelect" id="userSelectLabel" class="selector-label">Student:</label>
+                    <select id="userSelect" class="student-select">
                         <!-- Opcje będą dynamicznie wypełniane z API -->
                     </select>
                 </div>
 
                 <div class="menu-section">
                     <div class="menu-section-label">Skróty</div>
-                    <nav class="menu-list">
-                        <a href="index.html" class="menu-link">
+                    <nav class="menu-list" id="sidebarMenu">
+                        <a href="index.html" class="menu-link" id="planLink">
                             <img src="img/callendar.png" alt="Plan" class="menu-icon" />
                             <span>PLAN ZAJĘĆ</span>
                         </a>
-                        <a href="zapisy.html" class="menu-link-active">
+                        <a href="zapisy.html" class="menu-link-active" id="actionLink">
                             <img src="img/sign.png" alt="Rejestracja" class="menu-icon" />
                             <span>REJESTRACJA NA ZAJĘCIA</span>
+                        </a>
+                        <a href="zajecia.html" class="menu-link" id="catalogLink">
+                            <img src="img/info.png" alt="Spis" class="menu-icon" />
+                            <span>SPIS ZAJĘĆ</span>
+                        </a>
+                        <a href="historia.html" class="menu-link" id="historyLink">
+                            <img src="img/reset.png" alt="Historia" class="menu-icon" style="filter: hue-rotate(90deg);" />
+                            <span>HISTORIA</span>
                         </a>
                     </nav>
                 </div>

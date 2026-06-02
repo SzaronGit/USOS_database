@@ -801,3 +801,468 @@ body {
     font-size: 10px;
     font-weight: bold;
 }
+
+/* Lecturer Panel & CRUD Styling */
+.seats-info-compact {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+
+.add-class-btn {
+    background-color: #0ea5e9;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.add-class-btn:hover {
+    background-color: #0284c7;
+}
+
+.btn-edit {
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-edit:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.btn-delete {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-delete:hover {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+.modal-overlay.show-modal {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Modal Container */
+.modal-container {
+    background-color: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.25s ease;
+}
+.modal-overlay.show-modal .modal-container {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+.modal-close-x {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.modal-close-x:hover {
+    color: #475569;
+}
+
+/* Form Styling */
+.modal-form {
+    padding: 20px;
+}
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.form-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+    width: 100%;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    outline: none;
+    box-sizing: border-box;
+}
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #0ea5e9;
+    background-color: white;
+}
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+.half-width {
+    width: 50%;
+}
+.third-width {
+    width: 33.33%;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 16px;
+}
+.btn-cancel {
+    background-color: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-cancel:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+.btn-save {
+    background-color: #0ea5e9;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-save:hover {
+    background-color: #0284c7;
+}
+
+/* Modal Alert Box Style */
+.modal-alert-box {
+    padding: 12px 16px;
+    border-radius: 6px;
+    border: 1px solid #fca5a5;
+    background-color: #fef2f2;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.modal-alert-box.show-alert {
+    display: flex;
+}
+
+/* Class Catalog (Spis Zajęć) Styling */
+.catalog-card {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.catalog-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.catalog-card-header {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.catalog-card-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.catalog-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.catalog-card-meta {
+    font-size: 12px;
+    color: #475569;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.catalog-card-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.catalog-card-meta-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+}
+
+.catalog-card-body {
+    padding: 20px;
+}
+
+.student-list-container {
+    background-color: #fcfdfe;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.student-list-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    margin-top: 0;
+}
+
+.student-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.student-table th {
+    text-align: left;
+    color: #64748b;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 8px 12px;
+}
+
+.student-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.student-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+.student-table tr:last-child td {
+    border-bottom: none;
+}
+
+.no-students-placeholder {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    padding: 12px 0;
+    margin: 0;
+}
+
+.search-bar-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.search-input-field {
+    flex-grow: 1;
+    background-color: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
+    outline: none;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.search-input-field:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+/* Activity Log (Historia) Styling */
+.timeline-container {
+    position: relative;
+    padding-left: 32px;
+    margin-top: 16px;
+}
+
+.timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background-color: #e2e8f0;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -24px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #e2e8f0;
+}
+
+.timeline-dot.enroll { background-color: #22c55e; box-shadow: 0 0 0 2px #bbf7d0; }
+.timeline-dot.unenroll { background-color: #ef4444; box-shadow: 0 0 0 2px #fca5a5; }
+.timeline-dot.create_class { background-color: #0ea5e9; box-shadow: 0 0 0 2px #bae6fd; }
+.timeline-dot.edit_class { background-color: #f59e0b; box-shadow: 0 0 0 2px #fde68a; }
+.timeline-dot.delete_class { background-color: #dc2626; box-shadow: 0 0 0 2px #fecaca; }
+.timeline-dot.reset_db { background-color: #6366f1; box-shadow: 0 0 0 2px #c7d2fe; }
+
+.timeline-content {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.timeline-user-section {
+    display: flex;
+    align-items: center;
+}
+
+.timeline-user {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.timeline-time {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.timeline-details {
+    font-size: 13px;
+    color: #475569;
+    margin: 0;
+}
+
+.timeline-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.timeline-badge.student { background-color: #f0fdf4; color: #166534; }
+.timeline-badge.teacher { background-color: #f0f9ff; color: #075985; }
+.timeline-badge.system { background-color: #f5f3ff; color: #5b21b6; }
+
+
