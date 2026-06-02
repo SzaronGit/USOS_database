@@ -331,7 +331,7 @@ window.deleteClass = async function(id) {
 
     if (confirm(warningMsg)) {
         try {
-            const res = await fetch(`${API_URL}/classes/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/classes/${id}?teacher_id=${selectedTeacherId}`, { method: 'DELETE' });
             const data = await res.json();
             if (res.ok) {
                 showToast('Zajęcia zostały pomyślnie usunięte!', 'success');

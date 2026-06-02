@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from pydantic import BaseModel
 import models
 from database import engine, get_db
 
+# INICIALIZACJA BAZY
 def init_db(db: Session):
     models.Base.metadata.drop_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
@@ -89,7 +90,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Przy uruchomieniu automatycznie odświeżamy schemat i dane
+# ENDPOINTY
 @app.on_event("startup")
 def startup_event():
     db = next(get_db())
@@ -109,14 +110,14 @@ class UnenrollmentRequest(BaseModel):
     student_id: int
     class_id: int
 
+# Pobierz listę wszystkich studentów
 @app.get("/api/students")
 def get_students(db: Session = Depends(get_db)):
-    """Pobierz listę wszystkich studentów"""
     return db.query(models.Student).order_by(models.Student.id).all()
 
+# Pobierz listę wszystkich zajęć z prowadzącym"""
 @app.get("/api/classes")
 def get_classes(db: Session = Depends(get_db)):
-    """Pobierz listę wszystkich zajęć wraz z prowadzącym"""
     classes = db.query(models.Class).order_by(models.Class.id).all()
     result = []
     for c in classes:
@@ -137,9 +138,9 @@ def get_classes(db: Session = Depends(get_db)):
         })
     return result
 
+# Pobierz listę wszystkich zajęć z prowadzącym i zapisanych studentów
 @app.get("/api/classes/details")
 def get_classes_details(db: Session = Depends(get_db)):
-    """Pobierz listę wszystkich zajęć wraz z prowadzącym i listą zapisanych studentów"""
     classes = db.query(models.Class).order_by(models.Class.id).all()
     result = []
     for c in classes:
@@ -175,9 +176,9 @@ def get_classes_details(db: Session = Depends(get_db)):
         })
     return result
 
+# Pobierz plan zajęć danego studenta
 @app.get("/api/students/{student_id}/schedule")
 def get_student_schedule(student_id: int, db: Session = Depends(get_db)):
-    """Pobierz plan zajęć danego studenta"""
     student = db.query(models.Student).filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student nie istnieje.")
@@ -208,9 +209,9 @@ def get_student_schedule(student_id: int, db: Session = Depends(get_db)):
         })
     return result
 
+# Zapisz studenta na zajęcia (FOR UPDATE)
 @app.post("/api/enroll", status_code=status.HTTP_201_CREATED)
 def enroll_student(request: EnrollmentRequest, db: Session = Depends(get_db)):
-    """Zapisz studenta na zajęcia z użyciem blokowania pesymistycznego (FOR UPDATE)"""
     course = db.query(models.Class). \
         filter(models.Class.id == request.class_id). \
         with_for_update(). \
@@ -246,7 +247,7 @@ def enroll_student(request: EnrollmentRequest, db: Session = Depends(get_db)):
             detail="Student jest już zapisany na te zajęcia."
         )
 
-    # Check for student schedule collisions
+    # Kolizje z zajęciami
     def to_minutes(t_str):
         h, m = map(int, t_str.split(':'))
         return h * 60 + m
@@ -260,7 +261,6 @@ def enroll_student(request: EnrollmentRequest, db: Session = Depends(get_db)):
             detail="Nieprawidłowy format czasu w zajęciach."
         )
 
-    # Get student's current classes
     student_classes = db.query(models.Class).join(
         models.Enrollment, models.Enrollment.class_id == models.Class.id
     ).filter(models.Enrollment.student_id == request.student_id).all()
@@ -306,9 +306,9 @@ def enroll_student(request: EnrollmentRequest, db: Session = Depends(get_db)):
             detail="Błąd serwera podczas zapisu."
         )
 
+# Wypisz studenta z zajęć
 @app.post("/api/unenroll")
 def unenroll_student(request: UnenrollmentRequest, db: Session = Depends(get_db)):
-    """Wypisz studenta z zajęć"""
     course = db.query(models.Class). \
         filter(models.Class.id == request.class_id). \
         with_for_update(). \
@@ -340,9 +340,9 @@ def unenroll_student(request: UnenrollmentRequest, db: Session = Depends(get_db)
         db.rollback()
         raise HTTPException(status_code=500, detail="Błąd serwera podczas wypisywania.")
 
+# Zresetuj bazę danych do default
 @app.post("/api/reset-db")
 def reset_database(db: Session = Depends(get_db)):
-    """Zresetuj bazę danych do stanu domyślnego"""
     try:
         init_db(db)
         return {"status": "success", "message": "Baza danych została pomyślnie zresetowana!"}
@@ -363,13 +363,40 @@ def log_activity(db: Session, user_role: str, user_name: str, action: str, detai
     except Exception as e:
         print(f"Failed to log activity: {e}")
 
+# Pobierz historię działań użytkowników (Uzależniona od uprawnień)
 @app.get("/api/logs")
-def get_logs(db: Session = Depends(get_db)):
-    """Pobierz historię działań użytkowników"""
-    return db.query(models.ActivityLog).order_by(models.ActivityLog.id.desc()).all()
+def get_logs(role: str, user_id: int, db: Session = Depends(get_db)):
+    if role == "student": # swoje wpisy i wypisy
+        student = db.query(models.Student).filter(models.Student.id == user_id).first()
+        if not student:
+            raise HTTPException(status_code=404, detail="Ten student nie istnieje.")
 
-# --- TEACHER & CLASS CRUD EXTENSIONS ---
+        student_name = f"{student.first_name} {student.last_name}"
+        return db.query(models.ActivityLog).filter(
+            models.ActivityLog.user_name == student_name
+        ).order_by(models.ActivityLog.id.desc()).all()
 
+    elif role == "teacher": # swoje przedmioty oraz wpisy i wypisy z nich
+        teacher = db.query(models.Teacher).filter(models.Teacher.id == user_id).first()
+        if not teacher:
+            raise HTTPException(status_code=404, detail="Ten prowadzący nie istnieje.")
+
+        teacher_name = f"{teacher.academic_title or ''} {teacher.first_name} {teacher.last_name}".strip()
+        teacher_classes = db.query(models.Class).filter(models.Class.teacher_id == user_id).all()
+        class_names = [c.name for c in teacher_classes]
+
+        conditions = [models.ActivityLog.user_name == teacher_name]
+        for c_name in class_names:
+            conditions.append(models.ActivityLog.details.like(f"%'{c_name}'%"))
+
+        return db.query(models.ActivityLog).filter(
+            or_(*conditions)
+        ).order_by(models.ActivityLog.id.desc()).all()
+
+    else:
+        raise HTTPException(status_code=400, detail="Nieprawidłowa rola użytkownika.")
+
+# OPERACJE CRUD DLA TEACHERA
 class ClassCreateRequest(BaseModel):
     name: str
     max_seats: int
@@ -414,14 +441,14 @@ def check_teacher_collision(db: Session, teacher_id: int, day_of_week: int, star
             return c
     return None
 
+# Pobierz listę wszystkich prowadzących
 @app.get("/api/teachers")
 def get_teachers(db: Session = Depends(get_db)):
-    """Pobierz listę wszystkich prowadzących"""
     return db.query(models.Teacher).order_by(models.Teacher.id).all()
 
+# Pobierz plan zajęć prowadzonych przez prowadzącego
 @app.get("/api/teachers/{teacher_id}/schedule")
 def get_teacher_schedule(teacher_id: int, db: Session = Depends(get_db)):
-    """Pobierz plan zajęć prowadzonych przez danego prowadzącego"""
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Prowadzący nie istnieje.")
@@ -445,9 +472,9 @@ def get_teacher_schedule(teacher_id: int, db: Session = Depends(get_db)):
         })
     return result
 
+# Dodaj nowe zajęcia dla prowadzącego
 @app.post("/api/classes", status_code=status.HTTP_201_CREATED)
 def create_class(request: ClassCreateRequest, db: Session = Depends(get_db)):
-    """Dodaj nowe zajęcia dla prowadzącego"""
     if not request.name.strip():
         raise HTTPException(status_code=400, detail="Nazwa przedmiotu nie może być pusta.")
     if request.max_seats <= 0:
@@ -502,12 +529,18 @@ def create_class(request: ClassCreateRequest, db: Session = Depends(get_db)):
     
     return new_class
 
+# Edytuj istniejące zajęcia (Wymaga uprawnień)
 @app.put("/api/classes/{class_id}")
 def update_class(class_id: int, request: ClassCreateRequest, db: Session = Depends(get_db)):
-    """Edytuj istniejące zajęcia prowadzącego"""
     course = db.query(models.Class).filter(models.Class.id == class_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Zajęcia nie istnieją.")
+
+    if course.teacher_id != request.teacher_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Brak uprawnień. Możesz edytować wyłącznie swoje zajęcia!"
+        )
     
     if not request.name.strip():
         raise HTTPException(status_code=400, detail="Nazwa przedmiotu nie może być pusta.")
@@ -561,13 +594,19 @@ def update_class(class_id: int, request: ClassCreateRequest, db: Session = Depen
     
     return course
 
+# Usuń zajęcia (Wymaga uprawnień)
 @app.delete("/api/classes/{class_id}")
-def delete_class(class_id: int, db: Session = Depends(get_db)):
-    """Usuń zajęcia (oraz wyrejestruj wszystkich studentów z tych zajęć)"""
+def delete_class(class_id: int, teacher_id: int, db: Session = Depends(get_db)):
     course = db.query(models.Class).filter(models.Class.id == class_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Zajęcia nie istnieją.")
-        
+
+    if course.teacher_id != teacher_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Brak uprawnień. Możesz usuwać wyłącznie swoje zajęcia!"
+        )
+
     teacher = db.query(models.Teacher).filter(models.Teacher.id == course.teacher_id).first()
     teacher_name = f"{teacher.academic_title or ''} {teacher.first_name} {teacher.last_name}".strip() if teacher else "Nieznany prowadzący"
     course_name = course.name
@@ -583,3 +622,7 @@ def delete_class(class_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Błąd serwera podczas usuwania: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

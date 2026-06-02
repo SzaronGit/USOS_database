@@ -130,7 +130,7 @@ async function initSidebar() {
 
     // User switcher
     if (userSelect) {
-        userSelect.onchange = (e) => {
+        userSelect.onchange = async (e) => {
             const val = parseInt(e.target.value);
             if (selectedRole === 'student') {
                 selectedStudentId = val;
@@ -140,6 +140,7 @@ async function initSidebar() {
                 safeStorage.setItem('selectedTeacherId', val);
             }
             updateUserHeader();
+            await loadActivityLogs();
         };
     }
 
@@ -191,8 +192,10 @@ function updateUserHeader() {
 // Fetch logs from backend
 async function loadActivityLogs() {
     const container = document.getElementById('logsContainer');
+    const userId = selectedRole === 'student' ? selectedStudentId : selectedTeacherId;
+    if (!userId) return;
     try {
-        const res = await fetch(`${API_URL}/logs`);
+        const res = await fetch(`${API_URL}/logs?role=${selectedRole}&user_id=${userId}`);
         if (res.ok) {
             allLogs = await res.json();
             filteredLogs = [...allLogs];
