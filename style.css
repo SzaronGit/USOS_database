@@ -1,4 +1,4 @@
-/* USOS Mockup Stylesheet */
+/* ASRP Mockup Stylesheet */
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -47,7 +47,7 @@ body {
     gap: 8px;
 }
 
-.usos-logo {
+.asrp-logo {
     width: 28px;
     height: 28px;
     background-color: #f05a28;
@@ -62,7 +62,7 @@ body {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.usos-text {
+.asrp-text {
     font-family: 'Outfit', sans-serif;
     font-size: 18px;
     font-weight: 700;
@@ -70,7 +70,7 @@ body {
     letter-spacing: -0.025em;
 }
 
-.usos-text span {
+.asrp-text span {
     color: #f05a28;
 }
 

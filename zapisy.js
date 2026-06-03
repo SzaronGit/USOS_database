@@ -70,7 +70,7 @@ async function initSidebar() {
             const linkText = actionLink.querySelector('span');
             if (linkText) linkText.innerText = 'PANEL PROWADZĄCEGO';
             const linkImg = actionLink.querySelector('img');
-            if (linkImg) linkImg.src = 'img/info.png';
+            if (linkImg) linkImg.src = 'img/sign.png';
         } else {
             actionLink.href = 'zapisy.html';
             const linkText = actionLink.querySelector('span');
@@ -82,7 +82,7 @@ async function initSidebar() {
 
     try {
         if (selectedRole === 'student') {
-            if (userSelectLabel) userSelectLabel.innerText = 'Wybór studenta (Symulacja):';
+            if (userSelectLabel) userSelectLabel.innerText = 'Wybór studenta:';
             const response = await fetch(`${API_URL}/students`);
             if (response.ok) {
                 studentsList = await response.json();
